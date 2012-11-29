@@ -13,3 +13,8 @@ curlobject_constants, curlobject_methods。
 剩下的工作就是把libcurl的setopt在do_curl_setopt中binding一下，就这么简单 :)
 
 那么DeepinGSettingsObject就是模仿pycurl的CurlObject的思路，大家理解了吧 :)
+
+参考文档
+http://developer.gnome.org/gio/2.32/GSettings.html
+python-2.7.3-docs-html/c-api/arg.html
+python-2.7.3-docs-html/c-api/concrete.html
