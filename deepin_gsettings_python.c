@@ -48,7 +48,8 @@ static PyMethodDef deepin_gsettings_methods[] =
     {NULL, NULL, 0, NULL}
 };
 
-static char m_get_value_doc[] = "Gets the value that is stored at key in settings";
+static char m_get_value_doc[] = "Gets the value that is stored at key in "
+                                "settings";
 static char m_set_value_doc[] = "Sets key in settings to value";
 
 static PyObject *m_delete(DeepinGSettingsObject *self);
@@ -91,7 +92,11 @@ static void m_deepin_gsettings_dealloc(DeepinGSettingsObject *self)
     Py_TRASHCAN_SAFE_END(self)
 }
 
-static PyObject *m_getattr(PyObject *co, char *name, PyObject *dict1, PyObject *dict2, PyMethodDef *m)
+static PyObject *m_getattr(PyObject *co, 
+                           char *name, 
+                           PyObject *dict1, 
+                           PyObject *dict2, 
+                           PyMethodDef *m)
 {
     PyObject *v = NULL;
     if (v == NULL && dict1 != NULL)
@@ -112,7 +117,8 @@ static int m_setattr(PyObject **dict, char *name, PyObject *v)
         if (*dict != NULL)
             rv = PyDict_DelItemString(*dict, name);
         if (rv < 0) {
-            PyErr_SetString(PyExc_AttributeError, "delete non-existing attribute");
+            PyErr_SetString(PyExc_AttributeError, 
+                            "delete non-existing attribute");
             return rv;
         }
     }
@@ -124,17 +130,26 @@ static int m_setattr(PyObject **dict, char *name, PyObject *v)
     return PyDict_SetItemString(*dict, name, v);
 }
 
-static PyObject *m_deepin_gsettings_getattr(DeepinGSettingsObject *dgo, char *name) 
+static PyObject *m_deepin_gsettings_getattr(DeepinGSettingsObject *dgo, 
+                                            char *name) 
 {
-    return m_getattr((PyObject *)dgo, name, dgo->dict, m_deepin_gsettings_object_constants, deepin_gsettings_object_methods);
+    return m_getattr((PyObject *)dgo, 
+                     name, 
+                     dgo->dict, 
+                     m_deepin_gsettings_object_constants, 
+                     deepin_gsettings_object_methods);
 }
 
-static PyObject *m_deepin_gsettings_setattr(DeepinGSettingsObject *dgo, char *name, PyObject *v) 
+static PyObject *m_deepin_gsettings_setattr(DeepinGSettingsObject *dgo, 
+                                            char *name, 
+                                            PyObject *v) 
 {
     return m_setattr(&dgo->dict, name, v);
 }
 
-static PyObject *m_deepin_gsettings_traverse(DeepinGSettingsObject *self, visitproc visit, void *args) 
+static PyObject *m_deepin_gsettings_traverse(DeepinGSettingsObject *self, 
+                                             visitproc visit, 
+                                             void *args) 
 {
     int err;
 #undef VISIT
@@ -196,7 +211,8 @@ static DeepinGSettingsObject *m_init_deepin_gsettings_object()
 {
     DeepinGSettingsObject *self = NULL;
 
-    self = (DeepinGSettingsObject *) PyObject_GC_New(DeepinGSettingsObject, m_DeepinGSettings_Type);
+    self = (DeepinGSettingsObject *) PyObject_GC_New(DeepinGSettingsObject, 
+                                                     m_DeepinGSettings_Type);
     if (!self)
         return NULL;
     PyObject_GC_Track(self);
@@ -269,6 +285,10 @@ static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args) 
 {
+    char *key = NULL;
+
+
+
     return Py_True;
 }
 
