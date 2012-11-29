@@ -1,0 +1,15 @@
+It is good to play with src/pycurl.c apt-get source pycurl, there is a 
+CurlObject structure to hide complex CURL* and other CURLXXX structure.
+
+我还是写中文吧，不然过阵子都不知道自己写的神马鹰文了 :)
+把玩一下pycurl的源代码，apt-get source pycurl，在pycurl-7.19.0/src/下有pycurl.c
+pycurl的作者很聪明将复杂的C结构体隐藏到自定义的CurlObject结构体中，通过handle来访问
+CURL *指针对象。
+
+特别的是，static PyTypeObject Curl_Type的实例化的方式，通过do_curl_getattr确定了
+curlobject_constants, curlobject_methods。
+在curlobject_methods中就有常用到的setopt等函数。
+
+剩下的工作就是把libcurl的setopt在do_curl_setopt中binding一下，就这么简单 :)
+
+那么DeepinGSettingsObject就是模仿pycurl的CurlObject的思路，大家理解了吧 :)
