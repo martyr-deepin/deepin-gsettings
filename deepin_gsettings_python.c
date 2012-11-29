@@ -23,6 +23,8 @@
 #include <Python.h>
 #include <gio/gio.h>
 
+#define INT(v) PyInt_FromSize_t(v)
+
 /* Safe XDECREF for object states that handles nested deallocations */
 #define ZAP(v) do {\
     PyObject *tmp = (PyObject *)(v); \
@@ -288,12 +290,12 @@ static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args)
     char *key = NULL;
 
     if (!PyArg_ParseTuple(args, "s", &key))
-        return PyInt_FromSize_t(-1);
+        return INT(-1);
 
     if (!self->handle)
-        return PyInt_FromSize_t(-1);
+        return INT(-1);
 
-    return PyInt_FromSize_t(g_settings_get_int(self->handle, key));
+    return INT(g_settings_get_int(self->handle, key));
 }
 
 static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args) 
@@ -319,7 +321,15 @@ static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_get_uint(DeepinGSettingsObject *self, PyObject *args) 
 {
-    return Py_True;
+    char *key = NULL;
+
+    if (!PyArg_ParseTuple(args, "s", &key)) 
+        return INT(0);
+
+    if (!self->handle)
+        return INT(0);
+
+    return INT(g_settings_get_uint(self->handle, key));
 }
 
 static PyObject *m_set_uint(DeepinGSettingsObject *self, PyObject *args) 

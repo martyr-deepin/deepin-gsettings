@@ -44,6 +44,9 @@ class DeepinGSettings:
     def set_int(self, key, value):
         return self.handle.set_int(key, value)
 
+    def get_uint(self, key):
+        return self.handle.get_uint(key)
+
 class DownladThread(td.Thread):
     def __init__(self, schema_id):
         td.Thread.__init__(self)
