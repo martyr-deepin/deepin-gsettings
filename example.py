@@ -41,6 +41,9 @@ class DeepinGSettings:
     def get_int(self, key):
         return self.handle.get_int(key)
 
+    def set_int(self, key, value):
+        return self.handle.set_int(key, value)
+
 class DownladThread(td.Thread):
     def __init__(self, schema_id):
         td.Thread.__init__(self)
@@ -52,4 +55,5 @@ class DownladThread(td.Thread):
 
 deepin_gsettings_instance1 = DeepinGSettings("org.gnome.settings-daemon.plugins.power")
 print "get_boolean active ", deepin_gsettings_instance1.get_boolean("active")
-print deepin_gsettings_instance1.get_int("idle-brightness")
+print "get_int idle-brightness ", deepin_gsettings_instance1.get_int("idle-brightness")
+print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)

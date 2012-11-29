@@ -272,7 +272,7 @@ static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args)
 static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args) 
 {
     char *key = NULL;
-    PyObject *value;
+    PyObject *value = NULL;
 
     if (!PyArg_ParseTuple(args, "sO", &key, &value))
         return Py_False;
@@ -298,6 +298,22 @@ static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args) 
 {
+    char *key = NULL;
+    PyObject *value = NULL;
+    int nvalue = -1;
+
+    if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
+        return Py_False;
+    nvalue = PyInt_AsLong(value);
+
+    if (!self->handle)
+        return Py_False;
+
+    if (!g_settings_set_int(self->handle, key, nvalue)) 
+        return Py_False;
+    /* Do not forget to sync */
+    g_settings_sync();
+    
     return Py_True;
 }
 
