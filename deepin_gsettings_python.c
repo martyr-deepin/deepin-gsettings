@@ -69,13 +69,13 @@ static PyMethodDef deepin_gsettings_object_methods[] =
     {"delete", m_delete, METH_NOARGS, "Deepin GSettings Object Destruction"}, 
     {"get_boolean", m_get_boolean, METH_VARARGS, m_get_value_doc}, 
     {"set_boolean", m_set_boolean, METH_VARARGS, m_set_value_doc}, 
-    {"get_int", m_get_int, METH_NOARGS, m_get_value_doc}, 
+    {"get_int", m_get_int, METH_VARARGS, m_get_value_doc}, 
     {"set_int", m_set_int, METH_VARARGS, m_set_value_doc}, 
-    {"get_uint", m_get_uint, METH_NOARGS, m_get_value_doc}, 
+    {"get_uint", m_get_uint, METH_VARARGS, m_get_value_doc}, 
     {"set_uint", m_set_uint, METH_VARARGS, m_set_value_doc}, 
     {"get_double", m_get_double, METH_NOARGS, m_get_value_doc}, 
     {"set_double", m_set_double, METH_VARARGS, m_set_value_doc}, 
-    {"get_strv", m_get_strv, METH_NOARGS, m_get_value_doc}, 
+    {"get_strv", m_get_strv, METH_VARARGS, m_get_value_doc}, 
     {"set_strv", m_set_strv, METH_VARARGS, m_set_value_doc}, 
     {NULL, NULL, 0, NULL}
 };
@@ -287,9 +287,13 @@ static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args)
 {
     char *key = NULL;
 
+    if (!PyArg_ParseTuple(args, "s", &key))
+        return PyInt_FromSize_t(-1);
 
+    if (!self->handle)
+        return PyInt_FromSize_t(-1);
 
-    return Py_True;
+    return PyInt_FromSize_t(g_settings_get_int(self->handle, key));
 }
 
 static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args) 
