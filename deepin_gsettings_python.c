@@ -237,7 +237,7 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
     if (!PyArg_ParseTuple(args, "s", &schema_id))
         return NULL;
 
-    g_type_init ();
+    g_type_init();
     
     self->handle = g_settings_new(schema_id);
 
@@ -279,6 +279,15 @@ static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "sO", &key, &value))
         return Py_False;
 
+    if (!PyBool_Check(value)) 
+        return Py_False;
+
+    if (value == Py_True) 
+        g_settings_set_boolean(self->handle, key, 1);
+    else
+        g_settings_set_boolean(self->handle, key, 0);
+    g_settings_sync();
+
     if (!self->handle)
         return Py_False;
 
@@ -302,7 +311,7 @@ static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args)
 {
     char *key = NULL;
     PyObject *value = NULL;
-    int nvalue = -1;
+    gint nvalue = -1;
 
     if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
         return Py_False;

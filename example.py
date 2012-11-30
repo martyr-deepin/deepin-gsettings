@@ -38,6 +38,9 @@ class DeepinGSettings:
     def get_boolean(self, key):
         return self.handle.get_boolean(key)
 
+    def set_boolean(self, key, value):
+        return self.handle.set_boolean(key, value)
+
     def get_int(self, key):
         return self.handle.get_int(key)
 
@@ -58,5 +61,6 @@ class DownladThread(td.Thread):
 
 deepin_gsettings_instance1 = DeepinGSettings("org.gnome.settings-daemon.plugins.power")
 print "get_boolean active ", deepin_gsettings_instance1.get_boolean("active")
+print "set_boolean idle-dim-battery ", deepin_gsettings_instance1.set_boolean("idle-dim-battery", True)
 print "get_int idle-brightness ", deepin_gsettings_instance1.get_int("idle-brightness")
 print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)
