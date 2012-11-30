@@ -22,6 +22,7 @@
 #include <Python.h>
 #include <gio/gio.h>
 
+#define BUF_SIZE 1024
 #define INT(v) PyInt_FromSize_t(v)
 #define DOUBLE(v) PyFloat_FromDouble(v)
 #define STRING(v) PyString_FromString(v)
@@ -71,7 +72,7 @@ static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args);
-static void m_cleanup_object(void *object);
+static void m_cleanup_strv(gchar **strv);
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args);
 
 static PyMethodDef deepin_gsettings_object_methods[] = 
@@ -317,7 +318,7 @@ static PyObject *m_list_keys(DeepinGSettingsObject *self)
         item = STRING(keys[i]);
         PyList_Append(list, item);
     }
-
+    
     return list;
 }
 
@@ -509,9 +510,11 @@ static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args)
 static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args) 
 {
     gchar *key = NULL;
-    gchar **strv;
+    gchar **strv = NULL;
+    PyObject *value = NULL;
     PyObject *list = PyList_New(0);
     PyObject *item = NULL;
+    gsize length = 0;
     int i;
 
     if (!PyArg_ParseTuple(args, "s", &key)) 
@@ -520,8 +523,9 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
     if (!self->handle) 
         return list;
     
-    strv = g_settings_get_strv(self->handle, key);
-    for (i = 0; i <= sizeof(strv) / sizeof(gchar *); i++) {
+    value = g_settings_get_value(self->handle, key);
+    strv = g_variant_dup_strv(value, &length);
+    for (i = 0; i < length; i++) {
         item = STRING(strv[i]);
         PyList_Append(list, item);
     }
@@ -529,11 +533,17 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
     return list;
 }
 
-static void m_cleanup_object(void *object) 
+static void m_cleanup_strv(gchar **strv) 
 {
-    if (object) {
-        free(object);
-        object = NULL;
+    int i;
+
+    for (i = 0; i < sizeof(strv) / sizeof(gchar *); i++) {
+        free(strv[i]);
+        strv[i] = NULL;
+    }
+    if (strv) {
+        free(strv);
+        strv = NULL;
     }
 }
 
@@ -542,7 +552,7 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     gchar *key = NULL;
     PyObject *value = NULL;
     gchar **strv;
-    int size = 0;
+    gsize length = 0;
     int i;
 
     if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
@@ -554,20 +564,32 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     if (!self->handle) 
         return Py_False;
     
-    size = PyList_Size(value);
-    strv = malloc(size * sizeof(gchar *));
+    length = PyList_Size(value);
+    strv = malloc(length * sizeof(gchar *));
     if (!strv) 
         return Py_False;
-
-    for (i = 0; i < size; i++) {
-        strv[i] = PyString_AsString(PyList_GetItem(value, i));
+    memset(strv, 0, length * sizeof(gchar *));
+    for (i = 0; i < length; i++) { 
+        strv[i] = (gchar *)malloc(BUF_SIZE * sizeof(gchar));
+        if (!strv[i]) 
+            return Py_False;
+        memset(strv[i], 0, BUF_SIZE * sizeof(gchar));
     }
-    if (!g_settings_set_strv(self->handle, key, strv)) 
-        m_cleanup_object(strv);
+    
+    for (i = 0; i < length; i++) {
+        strcpy(strv[i], PyString_AsString(PyList_GetItem(value, i)));
+    }
+    for (i = 0; i < length; i++) 
+    {
+        printf("DEBUG set_strv %s\n", strv[i]);
+    }
+    if (!g_settings_set_strv(self->handle, key, strv)) {
+        m_cleanup_strv(strv);
         return Py_False;
+    }
     g_settings_sync();
 
-    m_cleanup_object(strv);
+    m_cleanup_strv(strv);
 
     return Py_True;
 }

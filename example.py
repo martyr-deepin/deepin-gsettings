@@ -38,6 +38,9 @@ class DeepinGSettings:
     def connect(self, name, func):
         return self.handle.connect(name, func)
     
+    def list_keys(self):
+        return self.handle.list_keys()
+    
     def get_boolean(self, key):
         return self.handle.get_boolean(key)
 
@@ -74,9 +77,10 @@ def m_changed():
 deepin_gsettings_instance1 = DeepinGSettings("org.gnome.settings-daemon.plugins.power")
 deepin_gsettings_instance1.connect("changed", m_changed)
 deepin_gsettings_instance2 = DeepinGSettings("org.gnome.libgnomekbd.keyboard")
+print "list_keys ", deepin_gsettings_instance1.list_keys()
 print "get_boolean active ", deepin_gsettings_instance1.get_boolean("active")
 print "set_boolean idle-dim-battery ", deepin_gsettings_instance1.set_boolean("idle-dim-battery", True)
 print "get_int idle-brightness ", deepin_gsettings_instance1.get_int("idle-brightness")
 print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)
-print "get_strv layouts ", deepin_gsettings_instance2.get_strv("layouts")
-#print "set_strv options ", deepin_gsettings_instance2.set_strv("options", ['xxx', 'ooo'])
+print "get_strv layouts ", deepin_gsettings_instance2.get_strv("options")
+print "set_strv options ", deepin_gsettings_instance2.set_strv("options", ['xxx', 'ooo', '中文'])
