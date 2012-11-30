@@ -422,8 +422,7 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
         return list;
     
     strv = g_settings_get_strv(self->handle, key);
-    for (i = 0; i <= sizeof(strv) / sizeof(gchar *); i++) 
-    {
+    for (i = 0; i <= sizeof(strv) / sizeof(gchar *); i++) {
         item = PyString_FromString(strv[i]);
         PyList_Append(list, item);
     }
@@ -433,5 +432,34 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args) 
 {
+    char *key = NULL;
+    PyObject *value = NULL;
+    gchar **strv;
+    int size = 0;
+    int i;
+
+    if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
+        return Py_False;
+    
+    if (!PyList_Check(value)) 
+        return Py_False;
+
+    size = PyList_Size(value);
+    strv = malloc(size * sizeof(gchar *));
+    if (!strv) 
+        return Py_False;
+
+    for (i = 0; i < size; i++) {
+        strv[i] = PyString_AsString(PyList_GetItem(value, i));
+    }
+    if (!g_settings_set_strv(self->handle, key, strv)) 
+        return Py_False;
+    g_settings_sync();
+
+    if (strv) {
+        free(strv);
+        strv = NULL;
+    }
+
     return Py_True;
 }
