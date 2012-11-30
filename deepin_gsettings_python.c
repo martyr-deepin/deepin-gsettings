@@ -430,6 +430,14 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
     return list;
 }
 
+static void m_cleanup_object(void *object) 
+{
+    if (object) {
+        free(object);
+        object = NULL;
+    }
+}
+
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args) 
 {
     char *key = NULL;
@@ -453,13 +461,11 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
         strv[i] = PyString_AsString(PyList_GetItem(value, i));
     }
     if (!g_settings_set_strv(self->handle, key, strv)) 
+        m_cleanup_object(strv);
         return Py_False;
     g_settings_sync();
 
-    if (strv) {
-        free(strv);
-        strv = NULL;
-    }
+    m_cleanup_object(strv);
 
     return Py_True;
 }
