@@ -17,7 +17,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
  */
 
 #include <Python.h>
@@ -25,6 +24,7 @@
 
 #define INT(v) PyInt_FromSize_t(v)
 #define DOUBLE(v) PyFloat_FromDouble(v)
+#define STRING(v) PyString_FromString(v)
 
 /* Safe XDECREF for object states that handles nested deallocations */
 #define ZAP(v) do {\
@@ -56,6 +56,7 @@ static char m_get_value_doc[] = "Gets the value that is stored at key in "
 static char m_set_value_doc[] = "Sets key in settings to value";
 
 static PyObject *m_delete(DeepinGSettingsObject *self);
+static PyObject *m_list_keys(DeepinGSettingsObject *self);
 static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args);
@@ -64,12 +65,17 @@ static PyObject *m_get_uint(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_set_uint(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_get_double(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args);
+static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args);
+static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args);
+static void m_cleanup_object(void *object);
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args);
 
 static PyMethodDef deepin_gsettings_object_methods[] = 
 {
     {"delete", m_delete, METH_NOARGS, "Deepin GSettings Object Destruction"}, 
+    {"list_keys", m_list_keys, METH_NOARGS, 
+     "Introspects the list of keys on settings"}, 
     {"get_boolean", m_get_boolean, METH_VARARGS, m_get_value_doc}, 
     {"set_boolean", m_set_boolean, METH_VARARGS, m_set_value_doc}, 
     {"get_int", m_get_int, METH_VARARGS, m_get_value_doc}, 
@@ -78,6 +84,8 @@ static PyMethodDef deepin_gsettings_object_methods[] =
     {"set_uint", m_set_uint, METH_VARARGS, m_set_value_doc}, 
     {"get_double", m_get_double, METH_NOARGS, m_get_value_doc}, 
     {"set_double", m_set_double, METH_VARARGS, m_set_value_doc}, 
+    {"get_string", m_get_string, METH_VARARGS, m_get_value_doc}, 
+    {"set_string", m_set_string, METH_VARARGS, m_set_value_doc}, 
     {"get_strv", m_get_strv, METH_VARARGS, m_get_value_doc}, 
     {"set_strv", m_set_strv, METH_VARARGS, m_set_value_doc}, 
     {NULL, NULL, 0, NULL}
@@ -256,6 +264,26 @@ static PyObject *m_delete(DeepinGSettingsObject *self)
     return Py_None;
 }
 
+static PyObject *m_list_keys(DeepinGSettingsObject *self) 
+{
+    gchar **keys = NULL;
+    PyObject *list = PyList_New(0);
+    PyObject *item = NULL;
+    int i;
+
+    if (!self->handle) 
+        return list;
+
+    keys = g_settings_list_keys(self->handle);
+    for (i = 0; i <= sizeof(keys) / sizeof(gchar *); i++) 
+    {
+        item = STRING(keys[i]);
+        PyList_Append(list, item);
+    }
+
+    return list;
+}
+
 static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args) 
 {
     char *key = NULL;
@@ -283,14 +311,14 @@ static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args)
     if (!PyBool_Check(value)) 
         return Py_False;
 
+    if (!self->handle) 
+        return Py_False;
+    
     if (value == Py_True) 
         g_settings_set_boolean(self->handle, key, 1);
     else
         g_settings_set_boolean(self->handle, key, 0);
     g_settings_sync();
-
-    if (!self->handle)
-        return Py_False;
 
     return Py_True;
 }
@@ -407,6 +435,40 @@ static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args)
     return Py_True;
 }
 
+static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args) 
+{
+    char *key = NULL;
+
+    if (!PyArg_ParseTuple(args, "s", &key)) 
+        return STRING(NULL);
+
+    if (!self->handle) 
+        return STRING(NULL);
+
+    return STRING(g_settings_get_string(self->handle, key));
+}
+
+static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args) 
+{
+    char *key = NULL;
+    PyObject *value = NULL;
+
+    if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
+        return Py_False;
+
+    if (!PyString_Check(value)) 
+        return Py_False;
+
+    if (!self->handle) 
+        return Py_False;
+
+    if (!g_settings_set_string(self->handle, key, value)) 
+        return Py_False;
+    g_settings_sync();
+
+    return Py_True;
+}
+
 static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args) 
 {
     char *key = NULL;
@@ -423,10 +485,10 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
     
     strv = g_settings_get_strv(self->handle, key);
     for (i = 0; i <= sizeof(strv) / sizeof(gchar *); i++) {
-        item = PyString_FromString(strv[i]);
+        item = STRING(strv[i]);
         PyList_Append(list, item);
     }
-    PyList_Append(list, item);
+    
     return list;
 }
 
@@ -452,6 +514,9 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     if (!PyList_Check(value)) 
         return Py_False;
 
+    if (!self->handle) 
+        return Py_False;
+    
     size = PyList_Size(value);
     strv = malloc(size * sizeof(gchar *));
     if (!strv) 
