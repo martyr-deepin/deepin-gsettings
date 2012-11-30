@@ -246,7 +246,7 @@ static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data)
 {
     DeepinGSettingsObject *self = (DeepinGSettingsObject *) user_data;
     
-    if (!self->changed_cb)
+    if (self->changed_cb)
         PyEval_CallObject(self->changed_cb, NULL);
 }
 
@@ -265,10 +265,9 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
     g_type_init();
     
     self->handle = g_settings_new(schema_id);
-    /*
     if (self->handle) 
         g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);
-    */
+    
     return self;
 }
 
@@ -294,11 +293,8 @@ static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args)
     if (!PyCallable_Check(fptr)) 
         return Py_False;
     
-    if (strcmp(name, "changed") == 0) { 
-        Py_XINCREF(fptr);
-        Py_XDECREF(self->changed_cb);
+    if (strcmp(name, "changed") == 0)  
         self->changed_cb = fptr;
-    }
 
     return Py_True;
 }
@@ -578,12 +574,12 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
         memset(strv[i], 0, BUF_SIZE * sizeof(gchar));
     }
     
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < length; i++) 
         strcpy(strv[i], PyString_AsString(PyList_GetItem(value, i)));
-    }
     strv[length] = NULL;
 
     if (!g_settings_set_strv(self->handle, key, strv)) {
+        m_cleanup_strv(strv, length + 1);
         return Py_False;
     }
     g_settings_sync();

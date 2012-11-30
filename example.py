@@ -75,12 +75,13 @@ def m_changed():
     print "DEBUG changed xxxxxxxxxxxxxxxxxxxxxxxx"
 
 deepin_gsettings_instance1 = DeepinGSettings("org.gnome.settings-daemon.plugins.power")
-#deepin_gsettings_instance1.connect("changed", m_changed)
+deepin_gsettings_instance1.connect("changed", m_changed)
 deepin_gsettings_instance2 = DeepinGSettings("org.gnome.libgnomekbd.keyboard")
+deepin_gsettings_instance2.connect("changed", m_changed)
 print "list_keys ", deepin_gsettings_instance1.list_keys()
 print "get_boolean active ", deepin_gsettings_instance1.get_boolean("active")
 print "set_boolean idle-dim-battery ", deepin_gsettings_instance1.set_boolean("idle-dim-battery", True)
 print "get_int idle-brightness ", deepin_gsettings_instance1.get_int("idle-brightness")
 print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)
 print "get_strv layouts ", deepin_gsettings_instance2.get_strv("options")
-print "set_strv options ", deepin_gsettings_instance2.set_strv("options", ['xxx', 'ooo', 'DEBUG', '中文'])
+print "set_strv options ", deepin_gsettings_instance2.set_strv("options", ['xxx', 'ooo'])
