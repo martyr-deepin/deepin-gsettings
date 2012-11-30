@@ -24,6 +24,7 @@
 #include <gio/gio.h>
 
 #define INT(v) PyInt_FromSize_t(v)
+#define DOUBLE(v) PyFloat_FromDouble(v)
 
 /* Safe XDECREF for object states that handles nested deallocations */
 #define ZAP(v) do {\
@@ -315,6 +316,10 @@ static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args)
 
     if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
         return Py_False;
+    
+    /* TODO: Do not forget to check the data type */
+    if (!PyInt_Check(value)) 
+        return Py_False;
     nvalue = PyInt_AsLong(value);
 
     if (!self->handle)
@@ -322,7 +327,7 @@ static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args)
 
     if (!g_settings_set_int(self->handle, key, nvalue)) 
         return Py_False;
-    /* Do not forget to sync */
+    /* TODO: Do not forget to sync */
     g_settings_sync();
     
     return Py_True;
@@ -343,22 +348,87 @@ static PyObject *m_get_uint(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_set_uint(DeepinGSettingsObject *self, PyObject *args) 
 {
+    char *key = NULL;
+    PyObject *value = NULL;
+    gint nvalue = 0;
+
+    if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
+        return Py_False;
+
+    if (!PyInt_Check(value)) 
+        return Py_False;
+    nvalue = PyInt_AsLong(value);
+    if (nvalue < 0) 
+        return Py_False;
+
+    if (!self->handle) 
+        return Py_False;
+
+    if (!g_settings_set_uint(self->handle, key, nvalue)) 
+        return Py_False;
+    g_settings_sync();
+    
     return Py_True;
 }
 
 static PyObject *m_get_double(DeepinGSettingsObject *self, PyObject *args) 
 {
-    return Py_True;
+    char *key = NULL;
+
+    if (!PyArg_ParseTuple(args, "s", &key)) 
+        return DOUBLE(0.0);
+
+    if (!self->handle) 
+        return DOUBLE(0.0);
+
+    return DOUBLE(g_settings_get_double(self->handle, key));
 }
 
 static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args) 
 {
+    char *key = NULL;
+    PyObject *value = NULL;
+    gdouble dvalue = 0.0;
+
+    if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
+        return Py_False;
+
+    if (!PyFloat_Check(value)) 
+        return Py_False;
+    dvalue = PyFloat_AsDouble(value);
+
+    if (!self->handle) 
+        return Py_False;
+
+    if (!g_settings_set_double(self->handle, key, dvalue)) 
+        return Py_False;
+    g_settings_sync();
+
     return Py_True;
 }
 
 static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args) 
 {
-    return Py_True;
+    char *key = NULL;
+    gchar **strv;
+    PyObject *list = PyList_New(0);
+    PyObject *item = NULL;
+    int i;
+
+    if (!PyArg_ParseTuple(args, "s", &key)) 
+        return list;
+
+    if (!self->handle) 
+        return list;
+    
+    strv = g_settings_get_strv(self->handle, key);
+    for (i = 0; i <= sizeof(strv) / sizeof(gchar *); i++) 
+    {
+        item = PyString_FromString(strv[i]);
+        PyList_Append(list, item);
+    }
+    PyList_Append(list, item);
+    return list;
 }
 
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args) 

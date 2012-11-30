@@ -50,6 +50,9 @@ class DeepinGSettings:
     def get_uint(self, key):
         return self.handle.get_uint(key)
 
+    def get_strv(self, key):
+        return self.handle.get_strv(key)
+
 class DownladThread(td.Thread):
     def __init__(self, schema_id):
         td.Thread.__init__(self)
@@ -60,7 +63,9 @@ class DownladThread(td.Thread):
         pass
 
 deepin_gsettings_instance1 = DeepinGSettings("org.gnome.settings-daemon.plugins.power")
+deepin_gsettings_instance2 = DeepinGSettings("org.gnome.libgnomekbd.keyboard")
 print "get_boolean active ", deepin_gsettings_instance1.get_boolean("active")
 print "set_boolean idle-dim-battery ", deepin_gsettings_instance1.set_boolean("idle-dim-battery", True)
 print "get_int idle-brightness ", deepin_gsettings_instance1.get_int("idle-brightness")
 print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)
+print "get_strv layouts ", deepin_gsettings_instance2.get_strv("layouts")
