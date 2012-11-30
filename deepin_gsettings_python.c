@@ -72,7 +72,7 @@ static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args);
-static void m_cleanup_strv(gchar **strv);
+static void m_cleanup_strv(gchar **strv, int length);
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args);
 
 static PyMethodDef deepin_gsettings_object_methods[] = 
@@ -265,9 +265,10 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
     g_type_init();
     
     self->handle = g_settings_new(schema_id);
+    /*
     if (self->handle) 
         g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);
-
+    */
     return self;
 }
 
@@ -533,18 +534,19 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
     return list;
 }
 
-static void m_cleanup_strv(gchar **strv) 
+static void m_cleanup_strv(gchar **strv, int length) 
 {
     int i;
 
-    for (i = 0; i < sizeof(strv) / sizeof(gchar *); i++) {
-        free(strv[i]);
-        strv[i] = NULL;
+    for (i = 0; i < length; i++) 
+    {
+        if (strv[i]) 
+            free(strv[i]);
+            strv[i] = NULL;
     }
-    if (strv) {
+    if (strv) 
         free(strv);
         strv = NULL;
-    }
 }
 
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args) 
@@ -565,7 +567,7 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
         return Py_False;
     
     length = PyList_Size(value);
-    strv = malloc(length * sizeof(gchar *));
+    strv = malloc((length + 1) * sizeof(gchar *));
     if (!strv) 
         return Py_False;
     memset(strv, 0, length * sizeof(gchar *));
@@ -579,17 +581,14 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     for (i = 0; i < length; i++) {
         strcpy(strv[i], PyString_AsString(PyList_GetItem(value, i)));
     }
-    for (i = 0; i < length; i++) 
-    {
-        printf("DEBUG set_strv %s\n", strv[i]);
-    }
+    strv[length] = NULL;
+
     if (!g_settings_set_strv(self->handle, key, strv)) {
-        m_cleanup_strv(strv);
         return Py_False;
     }
     g_settings_sync();
 
-    m_cleanup_strv(strv);
+    m_cleanup_strv(strv, length + 1);
 
     return Py_True;
 }
