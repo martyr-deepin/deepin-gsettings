@@ -37,6 +37,7 @@ typedef struct {
     PyObject_HEAD
     PyObject *dict; /* Python attributes dictionary */
     GSettings *handle;
+    PyObject *changed_cb;
 } DeepinGSettingsObject;
 
 static PyObject *m_deepin_gsettings_object_constants = NULL;
@@ -44,6 +45,7 @@ static PyTypeObject *m_DeepinGSettings_Type = NULL;
 
 static DeepinGSettingsObject *m_init_deepin_gsettings_object();
 static DeepinGSettingsObject *m_new(PyObject *self, PyObject *args);
+static void m_changed_cb();
 
 static PyMethodDef deepin_gsettings_methods[] = 
 {
@@ -56,6 +58,7 @@ static char m_get_value_doc[] = "Gets the value that is stored at key in "
 static char m_set_value_doc[] = "Sets key in settings to value";
 
 static PyObject *m_delete(DeepinGSettingsObject *self);
+static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_list_keys(DeepinGSettingsObject *self);
 static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args);
@@ -74,6 +77,7 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args);
 static PyMethodDef deepin_gsettings_object_methods[] = 
 {
     {"delete", m_delete, METH_NOARGS, "Deepin GSettings Object Destruction"}, 
+    {"connect", m_connect, METH_VARARGS, "signal response"}, 
     {"list_keys", m_list_keys, METH_NOARGS, 
      "Introspects the list of keys on settings"}, 
     {"get_boolean", m_get_boolean, METH_VARARGS, m_get_value_doc}, 
@@ -110,22 +114,24 @@ static PyObject *m_getattr(PyObject *co,
                            PyMethodDef *m)
 {
     PyObject *v = NULL;
-    if (v == NULL && dict1 != NULL)
+    
+    if (!v && dict1)
         v = PyDict_GetItemString(dict1, name);
-    if (v == NULL && dict2 != NULL)
+    if (!v && dict2)
         v = PyDict_GetItemString(dict2, name);
-    if (v != NULL) {
+    if (v) {
         Py_INCREF(v);
         return v;
     }
+    
     return Py_FindMethod(m, co, name);
 }
 
 static int m_setattr(PyObject **dict, char *name, PyObject *v)
 {
-    if (v == NULL) {
+    if (!v) {
         int rv = -1;
-        if (*dict != NULL)
+        if (*dict)
             rv = PyDict_DelItemString(*dict, name);
         if (rv < 0) {
             PyErr_SetString(PyExc_AttributeError, 
@@ -133,9 +139,9 @@ static int m_setattr(PyObject **dict, char *name, PyObject *v)
             return rv;
         }
     }
-    if (*dict == NULL) {
+    if (!*dict) {
         *dict = PyDict_New();
-        if (*dict == NULL)
+        if (!*dict)
             return -1;
     }
     return PyDict_SetItemString(*dict, name, v);
@@ -230,14 +236,23 @@ static DeepinGSettingsObject *m_init_deepin_gsettings_object()
 
     self->dict = NULL;
     self->handle = NULL;
+    self->changed_cb = NULL;
 
     return self;
+}
+
+static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data) 
+{
+    DeepinGSettingsObject *self = (DeepinGSettingsObject *) user_data;
+    
+    if (!self->changed_cb)
+        PyEval_CallObject(self->changed_cb, NULL);
 }
 
 static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args) 
 {
     DeepinGSettingsObject *self = NULL;
-    char *schema_id = NULL;
+    gchar *schema_id = NULL;
     
     self = m_init_deepin_gsettings_object();
     if (!self)
@@ -249,6 +264,8 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
     g_type_init();
     
     self->handle = g_settings_new(schema_id);
+    if (self->handle) 
+        g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);
 
     return self;
 }
@@ -262,6 +279,26 @@ static PyObject *m_delete(DeepinGSettingsObject *self)
 
     Py_INCREF(Py_None);
     return Py_None;
+}
+
+static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args) 
+{
+    gchar *name = NULL;
+    PyObject *fptr = NULL;
+
+    if (!PyArg_ParseTuple(args, "sO:set_callback", &name, &fptr)) 
+        return Py_False;
+
+    if (!PyCallable_Check(fptr)) 
+        return Py_False;
+    
+    if (strcmp(name, "changed") == 0) { 
+        Py_XINCREF(fptr);
+        Py_XDECREF(self->changed_cb);
+        self->changed_cb = fptr;
+    }
+
+    return Py_True;
 }
 
 static PyObject *m_list_keys(DeepinGSettingsObject *self) 
@@ -286,7 +323,7 @@ static PyObject *m_list_keys(DeepinGSettingsObject *self)
 
 static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
 
     if (!PyArg_ParseTuple(args, "s", &key))
         return Py_False;
@@ -302,7 +339,7 @@ static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
     PyObject *value = NULL;
 
     if (!PyArg_ParseTuple(args, "sO", &key, &value))
@@ -325,7 +362,7 @@ static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
 
     if (!PyArg_ParseTuple(args, "s", &key))
         return INT(-1);
@@ -338,7 +375,7 @@ static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
     PyObject *value = NULL;
     gint nvalue = -1;
 
@@ -363,7 +400,7 @@ static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_get_uint(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
 
     if (!PyArg_ParseTuple(args, "s", &key)) 
         return INT(0);
@@ -376,7 +413,7 @@ static PyObject *m_get_uint(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_set_uint(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
     PyObject *value = NULL;
     gint nvalue = 0;
 
@@ -401,7 +438,7 @@ static PyObject *m_set_uint(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_get_double(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
 
     if (!PyArg_ParseTuple(args, "s", &key)) 
         return DOUBLE(0.0);
@@ -414,7 +451,7 @@ static PyObject *m_get_double(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
     PyObject *value = NULL;
     gdouble dvalue = 0.0;
 
@@ -437,7 +474,7 @@ static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
 
     if (!PyArg_ParseTuple(args, "s", &key)) 
         return STRING(NULL);
@@ -450,7 +487,7 @@ static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
     PyObject *value = NULL;
 
     if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
@@ -471,7 +508,7 @@ static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args)
 
 static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
     gchar **strv;
     PyObject *list = PyList_New(0);
     PyObject *item = NULL;
@@ -502,7 +539,7 @@ static void m_cleanup_object(void *object)
 
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args) 
 {
-    char *key = NULL;
+    gchar *key = NULL;
     PyObject *value = NULL;
     gchar **strv;
     int size = 0;
