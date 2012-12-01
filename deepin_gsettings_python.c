@@ -575,7 +575,7 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     }
     
     for (i = 0; i < length; i++) 
-        strcpy(strv[i], PyString_AsString(PyList_GetItem(value, i)));
+        strncpy(strv[i], PyString_AsString(PyList_GetItem(value, i)), BUF_SIZE);
     strv[length] = NULL;
 
     if (!g_settings_set_strv(self->handle, key, strv)) {
