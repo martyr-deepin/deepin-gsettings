@@ -86,7 +86,7 @@ static PyMethodDef deepin_gsettings_object_methods[] =
     {"set_int", m_set_int, METH_VARARGS, m_set_value_doc}, 
     {"get_uint", m_get_uint, METH_VARARGS, m_get_value_doc}, 
     {"set_uint", m_set_uint, METH_VARARGS, m_set_value_doc}, 
-    {"get_double", m_get_double, METH_NOARGS, m_get_value_doc}, 
+    {"get_double", m_get_double, METH_VARARGS, m_get_value_doc}, 
     {"set_double", m_set_double, METH_VARARGS, m_set_value_doc}, 
     {"get_string", m_get_string, METH_VARARGS, m_get_value_doc}, 
     {"set_string", m_set_string, METH_VARARGS, m_set_value_doc}, 
