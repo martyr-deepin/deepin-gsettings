@@ -22,7 +22,6 @@
 #include <Python.h>
 #include <gio/gio.h>
 
-#define BUF_SIZE 1024
 #define INT(v) PyInt_FromSize_t(v)
 #define DOUBLE(v) PyFloat_FromDouble(v)
 #define STRING(v) PyString_FromString(v)
@@ -536,19 +535,23 @@ static void m_cleanup_strv(gchar **strv, int length)
 
     for (i = 0; i < length; i++) 
     {
-        if (strv[i]) 
+        if (strv[i]) {
             free(strv[i]);
             strv[i] = NULL;
+        }
     }
-    if (strv) 
+    if (strv) { 
         free(strv);
         strv = NULL;
+    }
 }
 
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args) 
 {
     gchar *key = NULL;
     PyObject *value = NULL;
+    char *item_str = NULL;
+    int item_length = 0;
     gchar **strv;
     gsize length = 0;
     int i;
@@ -567,15 +570,16 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     if (!strv) 
         return Py_False;
     memset(strv, 0, length * sizeof(gchar *));
+    
     for (i = 0; i < length; i++) { 
-        strv[i] = (gchar *)malloc(BUF_SIZE * sizeof(gchar));
+        item_str = PyString_AsString(PyList_GetItem(value, i));
+        item_length = strlen(item_str);
+        strv[i] = malloc(item_length * sizeof(gchar));
         if (!strv[i]) 
             return Py_False;
-        memset(strv[i], 0, BUF_SIZE * sizeof(gchar));
+        memset(strv[i], 0, item_length * sizeof(gchar));
+        strcpy(strv[i], item_str);
     }
-    
-    for (i = 0; i < length; i++) 
-        strncpy(strv[i], PyString_AsString(PyList_GetItem(value, i)), BUF_SIZE);
     strv[length] = NULL;
 
     if (!g_settings_set_strv(self->handle, key, strv)) {
