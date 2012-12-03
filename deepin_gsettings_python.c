@@ -485,12 +485,9 @@ static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args)
 static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args) 
 {
     gchar *key = NULL;
-    PyObject *value = NULL;
+    gchar *value = NULL;
 
-    if (!PyArg_ParseTuple(args, "sO", &key, &value)) 
-        return Py_False;
-
-    if (!PyString_Check(value)) 
+    if (!PyArg_ParseTuple(args, "ss", &key, &value)) 
         return Py_False;
 
     if (!self->handle) 

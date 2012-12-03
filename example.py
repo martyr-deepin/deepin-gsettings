@@ -62,7 +62,7 @@ class DeepinGSettings:
     def set_strv(self, key, value):
         return self.handle.set_strv(key, value)
 
-class DownladThread(td.Thread):
+class MyThread(td.Thread):
     def __init__(self, schema_id):
         td.Thread.__init__(self)
         self.setDaemon(True)
