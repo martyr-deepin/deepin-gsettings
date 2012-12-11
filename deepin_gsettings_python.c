@@ -244,9 +244,12 @@ static DeepinGSettingsObject *m_init_deepin_gsettings_object()
 static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data) 
 {
     DeepinGSettingsObject *self = (DeepinGSettingsObject *) user_data;
+    PyObject *arglist;
+
+    arglist = Py_BuildValue("(s)", key);
     
-    if (self->changed_cb)
-        PyEval_CallObject(self->changed_cb, NULL);
+    if (self->changed_cb) 
+        PyEval_CallObject(self->changed_cb, arglist);
 }
 
 static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args) 
@@ -566,7 +569,7 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     strv = malloc((length + 1) * sizeof(gchar *));
     if (!strv) 
         return Py_False;
-    memset(strv, 0, length * sizeof(gchar *));
+    memset(strv, 0, (length + 1) * sizeof(gchar *));
     
     for (i = 0; i < length; i++) { 
         item_str = PyString_AsString(PyList_GetItem(value, i));

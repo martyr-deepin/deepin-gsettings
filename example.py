@@ -71,8 +71,8 @@ class MyThread(td.Thread):
     def run(self):
         pass
 
-def m_changed():
-    print "DEBUG changed xxxxxxxxxxxxxxxxxxxxxxxx"
+def m_changed(key):
+    print "DEBUG changed", key
 
 deepin_gsettings_instance1 = DeepinGSettings("org.gnome.settings-daemon.plugins.power")
 deepin_gsettings_instance1.connect("changed", m_changed)
