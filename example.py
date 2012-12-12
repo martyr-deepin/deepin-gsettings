@@ -84,4 +84,10 @@ print "set_boolean idle-dim-battery ", deepin_gsettings_instance1.set_boolean("i
 print "get_int idle-brightness ", deepin_gsettings_instance1.get_int("idle-brightness")
 print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)
 print "get_strv layouts ", deepin_gsettings_instance2.get_strv("options")
-print "set_strv options ", deepin_gsettings_instance2.set_strv("options", ['xxx', 'ooo'])
+
+i = 0
+
+while i < 1000:
+    print "set_strv options ", deepin_gsettings_instance2.set_strv("options", ['xxx', 'ooo'])
+
+    i += 1
