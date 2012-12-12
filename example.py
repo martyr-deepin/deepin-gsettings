@@ -30,13 +30,17 @@ class DeepinGSettings:
         '''
         self.handle = deepin_gsettings.new(schema_id)
 
+    '''
     def __del__(self):
         self.handle.delete()
         self.handle = None
+    '''
 
+    '''
     def connect(self, name, func):
         return self.handle.connect(name, func)
-    
+    '''
+
     def list_keys(self):
         return self.handle.list_keys()
     
@@ -68,15 +72,18 @@ deepin_gsettings_instance1 = DeepinGSettings("org.gnome.settings-daemon.plugins.
 deepin_gsettings_instance1.connect("changed", m_changed)
 deepin_gsettings_instance2 = DeepinGSettings("org.gnome.libgnomekbd.keyboard")
 deepin_gsettings_instance2.connect("changed", m_changed)
-print "list_keys ", deepin_gsettings_instance1.list_keys()
-print "get_boolean active ", deepin_gsettings_instance1.get_boolean("active")
-print "set_boolean idle-dim-battery ", deepin_gsettings_instance1.set_boolean("idle-dim-battery", True)
-print "get_int idle-brightness ", deepin_gsettings_instance1.get_int("idle-brightness")
-print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)
-print "get_strv layouts ", deepin_gsettings_instance2.get_strv("options")
+
+def heavy_test():
+    print "list_keys ", deepin_gsettings_instance1.list_keys()
+    print "get_boolean active ", deepin_gsettings_instance1.get_boolean("active")
+    print "set_boolean idle-dim-battery ", deepin_gsettings_instance1.set_boolean("idle-dim-battery", True)
+    print "get_int idle-brightness ", deepin_gsettings_instance1.get_int("idle-brightness")
+    print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)
+    print "get_strv layouts ", deepin_gsettings_instance2.get_strv("options")
 
 i = 0
 while i < 1000:
-    print "set_strv options ", deepin_gsettings_instance2.set_strv("options", ['xxx', 'ooo'])
+    print "DEBUG %d times" % (i + 1)
+    heavy_test()
 
     i += 1
