@@ -21,7 +21,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import deepin_gsettings
-import threading as td
 
 class DeepinGSettings:
     def __init__(self, schema_id):
@@ -62,15 +61,6 @@ class DeepinGSettings:
     def set_strv(self, key, value):
         return self.handle.set_strv(key, value)
 
-class MyThread(td.Thread):
-    def __init__(self, schema_id):
-        td.Thread.__init__(self)
-        self.setDaemon(True)
-        self.deepin_gsettings = DeepinGSettings(schema_id)
-
-    def run(self):
-        pass
-
 def m_changed(key):
     print "DEBUG changed", key
 
@@ -86,7 +76,6 @@ print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brigh
 print "get_strv layouts ", deepin_gsettings_instance2.get_strv("options")
 
 i = 0
-
 while i < 1000:
     print "set_strv options ", deepin_gsettings_instance2.set_strv("options", ['xxx', 'ooo'])
 
