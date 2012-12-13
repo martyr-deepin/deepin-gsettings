@@ -37,15 +37,15 @@ typedef struct {
     PyObject_HEAD
     PyObject *dict; /* Python attributes dictionary */
     GSettings *handle;
-    PyObject *changed_cb;
 } DeepinGSettingsObject;
 
+static PyObject *m_changed_fptr = NULL;
 static PyObject *m_deepin_gsettings_object_constants = NULL;
 static PyTypeObject *m_DeepinGSettings_Type = NULL;
 
 static DeepinGSettingsObject *m_init_deepin_gsettings_object();
 static DeepinGSettingsObject *m_new(PyObject *self, PyObject *args);
-static void m_changed_cb();
+static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data);
 
 static PyMethodDef deepin_gsettings_methods[] = 
 {
@@ -236,7 +236,6 @@ static DeepinGSettingsObject *m_init_deepin_gsettings_object()
 
     self->dict = NULL;
     self->handle = NULL;
-    self->changed_cb = NULL;
 
     return self;
 }
@@ -248,8 +247,12 @@ static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data)
 
     arglist = Py_BuildValue("(s)", key);
     
-    if (self->changed_cb) 
-        PyEval_CallObject(self->changed_cb, arglist);
+    Py_INCREF(m_changed_fptr);
+    if (m_changed_fptr) {
+        PyEval_CallObject(m_changed_fptr, arglist);
+    }
+    Py_DECREF(arglist);
+    Py_DECREF(m_changed_fptr);
 }
 
 static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args) 
@@ -268,7 +271,7 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
     
     self->handle = g_settings_new(schema_id);
     if (self->handle) 
-        g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);
+        g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), NULL);
     
     return self;
 }
@@ -299,8 +302,11 @@ static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args)
         return Py_False;
     }
     
-    if (strcmp(name, "changed") == 0)  
-        self->changed_cb = fptr;
+    Py_XINCREF(fptr);
+    if (strcmp(name, "changed") == 0) { 
+        Py_XDECREF(m_changed_fptr);
+        m_changed_fptr = fptr;
+    }
 
     Py_INCREF(Py_True);
     return Py_True;
