@@ -30,16 +30,12 @@ class DeepinGSettings:
         '''
         self.handle = deepin_gsettings.new(schema_id)
 
-    '''
     def __del__(self):
         self.handle.delete()
         self.handle = None
-    '''
 
-    '''
     def connect(self, name, func):
         return self.handle.connect(name, func)
-    '''
 
     def list_keys(self):
         return self.handle.list_keys()
@@ -81,9 +77,13 @@ def heavy_test():
     print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)
     print "get_strv layouts ", deepin_gsettings_instance2.get_strv("options")
 
+heavy_test()
+
 i = 0
+'''
 while i < 1000:
     print "DEBUG %d times" % (i + 1)
     heavy_test()
 
     i += 1
+'''

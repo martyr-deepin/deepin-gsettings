@@ -289,16 +289,20 @@ static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args)
     gchar *name = NULL;
     PyObject *fptr = NULL;
 
-    if (!PyArg_ParseTuple(args, "sO:set_callback", &name, &fptr)) 
+    if (!PyArg_ParseTuple(args, "sO:set_callback", &name, &fptr)) { 
         Py_INCREF(Py_False);
         return Py_False;
+    }
 
-    if (!PyCallable_Check(fptr)) 
+    if (!PyCallable_Check(fptr)) {
+        Py_INCREF(Py_False);
         return Py_False;
+    }
     
     if (strcmp(name, "changed") == 0)  
         self->changed_cb = fptr;
 
+    Py_INCREF(Py_True);
     return Py_True;
 }
 
