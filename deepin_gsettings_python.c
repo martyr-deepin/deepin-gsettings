@@ -244,16 +244,18 @@ static DeepinGSettingsObject *m_init_deepin_gsettings_object()
 static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data) 
 {
     DeepinGSettingsObject *self = (DeepinGSettingsObject *) user_data;
-    PyObject *arglist;
-
-    arglist = Py_BuildValue("(s)", key);
     
-    printf("DEBUG START changed_cb %d\n", self->changed_cb);
     if (self->changed_cb) {
-        PyEval_CallObject(self->changed_cb, arglist);
+        /* 
+         * TODO: Thanks super _synh_
+         *       Thread mutex lock Python Style 
+         */
+        PyGILState_STATE gstate;
+        
+        gstate = PyGILState_Ensure();
+        PyEval_CallFunction(self->changed_cb, "(s)", key);
+        PyGILState_Release(gstate);
     }
-    printf("DEBUG END m_changed_fptr %d\n", self->changed_cb);
-    Py_DECREF(arglist);
 }
 
 static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args) 
@@ -271,7 +273,7 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
     g_type_init();
     
     self->handle = g_settings_new(schema_id);
-    if (self->handle) 
+    if (self->handle)
         g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);
     
     return self;
@@ -307,7 +309,7 @@ static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args)
     
     Py_XINCREF(fptr);
     if (strcmp(name, "changed") == 0) { 
-        Py_XINCREF(self->changed_cb);
+        Py_XDECREF(self->changed_cb);
         self->changed_cb = fptr;
     }
 
