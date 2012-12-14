@@ -241,21 +241,22 @@ static DeepinGSettingsObject *m_init_deepin_gsettings_object()
     return self;
 }
 
+/* TODO: g_signal_connect work in the g_mainloop thread, and there is also Python looping thread */
 static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data) 
 {
     DeepinGSettingsObject *self = (DeepinGSettingsObject *) user_data;
-    
-    if (self->changed_cb) {
-        /* 
-         * TODO: Thanks super _synh_
-         *       Thread mutex lock Python Style 
-         */
-        PyGILState_STATE gstate;
+    PyGILState_STATE gstate;
+
+    if (!self->changed_cb) 
+        return;
         
-        gstate = PyGILState_Ensure();
-        PyEval_CallFunction(self->changed_cb, "(s)", key);
-        PyGILState_Release(gstate);
-    }
+    /* 
+     * TODO: Thanks super _synh_
+     *       Thread mutex lock Python Style 
+     */
+    gstate = PyGILState_Ensure();
+    PyEval_CallFunction(self->changed_cb, "(s)", key);
+    PyGILState_Release(gstate);
 }
 
 static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args) 
@@ -322,23 +323,27 @@ static PyObject *m_list_keys(DeepinGSettingsObject *self)
     gchar **keys = NULL;
     PyObject *list = PyList_New(0);
     PyObject *item = NULL;
-    int i;
+    int i = 0;
 
     if (!self->handle) 
         return list;
 
     keys = g_settings_list_keys(self->handle);
-    if (keys) {
-        while (keys[i]) {
-            item = STRING(keys[i]);
-            PyList_Append(list, item);
-            i++;
-        }
+    if (!keys) 
+        return list;
+
+    while (keys[i]) {
+        item = STRING(keys[i]);
+        PyList_Append(list, item);
+        i++;
     }
     
     return list;
 }
 
+/* TIP: Please do not directly return Py_True, call Py_INCREF(Py_True) at first
+ *      Python GC will free Py_True when reference counting is 0
+ */
 static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args) 
 {
     gchar *key = NULL;
@@ -362,6 +367,9 @@ static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args)
     return Py_True;
 }
 
+/* TODO: When set_XXX, it need to check the variable data type, for example, 
+ *       PyBool_Check()
+ */
 static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args) 
 {
     gchar *key = NULL;
@@ -416,7 +424,6 @@ static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args)
         return Py_False;
     }
     
-    /* TODO: Do not forget to check the data type */
     if (!PyInt_Check(value)) {
         Py_INCREF(Py_False);
         return Py_False;
@@ -432,7 +439,6 @@ static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args)
         Py_INCREF(Py_False);
         return Py_False;
     }
-    /* TODO: Do not forget to sync */
     g_settings_sync();
     
     Py_INCREF(Py_True);
@@ -575,10 +581,8 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
 {
     gchar *key = NULL;
     gchar **strv = NULL;
-    PyObject *value = NULL;
     PyObject *list = PyList_New(0);
     PyObject *item = NULL;
-    gsize length = 0;
     int i;
 
     if (!PyArg_ParseTuple(args, "s", &key)) 
@@ -587,11 +591,13 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
     if (!self->handle) 
         return list;
     
-    value = g_settings_get_value(self->handle, key);
-    strv = g_variant_dup_strv(value, &length);
-    for (i = 0; i < length; i++) {
-        item = STRING(strv[i]);
-        PyList_Append(list, item);
+    strv = g_settings_get_strv(self->handle, key);
+    if (strv) {
+        while (strv[i]) {
+            item = STRING(strv[i]);
+            PyList_Append(list, item);
+            i++;
+        }
     }
     
     return list;
@@ -639,6 +645,9 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     }
     
     length = PyList_Size(value);
+    /* TODO: Allocation length + 1 for GSettings gchar** array 
+     *       Because there is no length argv any more 
+     */
     strv = malloc((length + 1) * sizeof(gchar *));
     if (!strv) {
         Py_INCREF(Py_False);
@@ -657,6 +666,7 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
         memset(strv[i], 0, item_length * sizeof(gchar));
         strcpy(strv[i], item_str);
     }
+    /* TODO: Tell GSettings the gchar** array size */
     strv[length] = NULL;
 
     if (!g_settings_set_strv(self->handle, key, strv)) {
