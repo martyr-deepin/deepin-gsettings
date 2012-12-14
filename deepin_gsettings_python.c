@@ -37,9 +37,9 @@ typedef struct {
     PyObject_HEAD
     PyObject *dict; /* Python attributes dictionary */
     GSettings *handle;
+    PyObject *changed_cb;
 } DeepinGSettingsObject;
 
-static PyObject *m_changed_fptr = NULL;
 static PyObject *m_deepin_gsettings_object_constants = NULL;
 static PyTypeObject *m_DeepinGSettings_Type = NULL;
 
@@ -236,6 +236,7 @@ static DeepinGSettingsObject *m_init_deepin_gsettings_object()
 
     self->dict = NULL;
     self->handle = NULL;
+    self->changed_cb = NULL;
 
     return self;
 }
@@ -247,19 +248,19 @@ static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data)
 
     arglist = Py_BuildValue("(s)", key);
     
-    Py_INCREF(m_changed_fptr);
-    if (m_changed_fptr) {
-        PyEval_CallObject(m_changed_fptr, arglist);
+    printf("DEBUG START changed_cb %d\n", self->changed_cb);
+    if (self->changed_cb) {
+        PyEval_CallObject(self->changed_cb, arglist);
     }
+    printf("DEBUG END m_changed_fptr %d\n", self->changed_cb);
     Py_DECREF(arglist);
-    Py_DECREF(m_changed_fptr);
 }
 
 static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args) 
 {
     DeepinGSettingsObject *self = NULL;
     gchar *schema_id = NULL;
-    
+ 
     self = m_init_deepin_gsettings_object();
     if (!self)
         return NULL;
@@ -271,7 +272,7 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
     
     self->handle = g_settings_new(schema_id);
     if (self->handle) 
-        g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), NULL);
+        g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);
     
     return self;
 }
@@ -282,6 +283,8 @@ static PyObject *m_delete(DeepinGSettingsObject *self)
         g_object_unref(self->handle);
         self->handle = NULL;
     }
+
+    self->changed_cb = NULL;
 
     Py_INCREF(Py_None);
     return Py_None;
@@ -304,8 +307,8 @@ static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args)
     
     Py_XINCREF(fptr);
     if (strcmp(name, "changed") == 0) { 
-        Py_XDECREF(m_changed_fptr);
-        m_changed_fptr = fptr;
+        Py_XINCREF(self->changed_cb);
+        self->changed_cb = fptr;
     }
 
     Py_INCREF(Py_True);
