@@ -68,8 +68,12 @@ deepin_gsettings_instance1 = DeepinGSettings("org.gnome.settings-daemon.plugins.
 deepin_gsettings_instance1.connect("changed", m_changed)
 deepin_gsettings_instance2 = DeepinGSettings("org.gnome.libgnomekbd.keyboard")
 deepin_gsettings_instance2.connect("changed", m_changed)
+dg3 = DeepinGSettings("org.gnome.system.locale")
+dg4 = DeepinGSettings("org.gnome.settings-daemon.peripherals.mouse")
 
 def heavy_test():
+    print "list_keys ", dg3.list_keys()
+    print "get_int", dg4.get_int("motion-threshold")
     print "list_keys ", deepin_gsettings_instance1.list_keys()
     print "get_boolean active ", deepin_gsettings_instance1.get_boolean("active")
     print "set_boolean idle-dim-battery ", deepin_gsettings_instance1.set_boolean("idle-dim-battery", True)

@@ -22,7 +22,7 @@
 #include <Python.h>
 #include <gio/gio.h>
 
-#define INT(v) PyInt_FromSize_t(v)
+#define INT(v) PyInt_FromLong(v)
 #define DOUBLE(v) PyFloat_FromDouble(v)
 #define STRING(v) PyString_FromString(v)
 
@@ -328,10 +328,12 @@ static PyObject *m_list_keys(DeepinGSettingsObject *self)
         return list;
 
     keys = g_settings_list_keys(self->handle);
-    for (i = 0; i <= sizeof(keys) / sizeof(gchar *); i++) 
-    {
-        item = STRING(keys[i]);
-        PyList_Append(list, item);
+    if (keys) {
+        while (keys[i]) {
+            item = STRING(keys[i]);
+            PyList_Append(list, item);
+            i++;
+        }
     }
     
     return list;
@@ -399,7 +401,7 @@ static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args)
 
     if (!self->handle)
         return INT(-1);
-
+    
     return INT(g_settings_get_int(self->handle, key));
 }
 
