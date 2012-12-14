@@ -1,6 +1,3 @@
-It is good to play with src/pycurl.c apt-get source pycurl, there is a 
-CurlObject structure to hide complex CURL* and other CURLXXX structure.
-
 Install
 sudo python setup.py install
 
@@ -13,11 +10,11 @@ CURL *指针对象。
 curlobject_constants, curlobject_methods。
 在curlobject_methods中就有常用到的setopt等函数。
 
-剩下的工作就是把libcurl的setopt在do_curl_setopt中binding一下，就这么简单 :)
-
-那么DeepinGSettingsObject就是模仿pycurl的CurlObject的思路，大家理解了吧 :)
+g_signal_connect信号绑定是需要注意的, 在g_main_loop_run线程里, 而Python绑定工作在
+另一个线程，就得使用Python Style的线程锁咯，谢谢 super _synh_ :)
 
 参考文档
 http://developer.gnome.org/gio/2.32/GSettings.html
+python-2.7.3-docs-html/c-api/init.html
 python-2.7.3-docs-html/c-api/arg.html
 python-2.7.3-docs-html/c-api/concrete.html
