@@ -81,13 +81,11 @@ def heavy_test():
     print "set_int idle-brightness ", deepin_gsettings_instance1.set_int("idle-brightness", 31)
     print "get_strv layouts ", deepin_gsettings_instance2.get_strv("options")
 
-heavy_test()
+#heavy_test()
 
 i = 0
-'''
 while i < 1000:
     print "DEBUG %d times" % (i + 1)
     heavy_test()
 
     i += 1
-'''

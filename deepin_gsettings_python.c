@@ -25,6 +25,7 @@
 #define INT(v) PyInt_FromLong(v)
 #define DOUBLE(v) PyFloat_FromDouble(v)
 #define STRING(v) PyString_FromString(v)
+#define ERROR(v) PyErr_SetString(PyExc_TypeError, v)
 
 /* Safe XDECREF for object states that handles nested deallocations */
 #define ZAP(v) do {\
@@ -71,7 +72,7 @@ static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args);
-static void m_cleanup_strv(gchar **strv, int length);
+static void m_cleanup_strv(gchar **strv);
 static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args);
 
 static PyMethodDef deepin_gsettings_object_methods[] = 
@@ -274,8 +275,13 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
     g_type_init();
     
     self->handle = g_settings_new(schema_id);
-    if (self->handle)
-        g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);
+    if (!self->handle) {
+        ERROR("g_settings_new error");
+        m_delete(self);
+        return NULL;
+    }
+    
+    g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);
     
     return self;
 }
@@ -299,8 +305,8 @@ static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args)
     PyObject *fptr = NULL;
 
     if (!PyArg_ParseTuple(args, "sO:set_callback", &name, &fptr)) { 
-        Py_INCREF(Py_False);
-        return Py_False;
+        ERROR("invalid arguments to connect");
+        return NULL;
     }
 
     if (!PyCallable_Check(fptr)) {
@@ -308,8 +314,8 @@ static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args)
         return Py_False;
     }
     
-    Py_XINCREF(fptr);
     if (strcmp(name, "changed") == 0) { 
+        Py_XINCREF(fptr);
         Py_XDECREF(self->changed_cb);
         self->changed_cb = fptr;
     }
@@ -324,9 +330,6 @@ static PyObject *m_list_keys(DeepinGSettingsObject *self)
     PyObject *list = PyList_New(0);
     PyObject *item = NULL;
     int i = 0;
-
-    if (!self->handle) 
-        return list;
 
     keys = g_settings_list_keys(self->handle);
     if (!keys) 
@@ -350,11 +353,6 @@ static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args)
     gchar *key = NULL;
 
     if (!PyArg_ParseTuple(args, "s", &key)) {
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-
-    if (!self->handle) {
         Py_INCREF(Py_False);
         return Py_False;
     }
@@ -385,11 +383,6 @@ static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args)
         Py_INCREF(Py_False);
         return Py_False;
     }
-
-    if (!self->handle) {
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
     
     if (value == Py_True) 
         g_settings_set_boolean(self->handle, key, 1);
@@ -405,11 +398,10 @@ static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args)
 {
     gchar *key = NULL;
 
-    if (!PyArg_ParseTuple(args, "s", &key))
-        return INT(-1);
-
-    if (!self->handle)
-        return INT(-1);
+    if (!PyArg_ParseTuple(args, "s", &key)) {
+        ERROR("invalid arguments to get_int");
+        return NULL;
+    }
     
     return INT(g_settings_get_int(self->handle, key));
 }
@@ -417,26 +409,14 @@ static PyObject *m_get_int(DeepinGSettingsObject *self, PyObject *args)
 static PyObject *m_set_int(DeepinGSettingsObject *self, PyObject *args) 
 {
     gchar *key = NULL;
-    PyObject *value = NULL;
-    gint nvalue = -1;
+    gint value = -1;
 
-    if (!PyArg_ParseTuple(args, "sO", &key, &value)) { 
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-    
-    if (!PyInt_Check(value)) {
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-    nvalue = PyInt_AsLong(value);
-
-    if (!self->handle) {
-        Py_INCREF(Py_False);
-        return Py_False;
+    if (!PyArg_ParseTuple(args, "si", &key, &value)) { 
+        ERROR("invalid arguments to set_int");
+        return NULL;
     }
 
-    if (!g_settings_set_int(self->handle, key, nvalue)) { 
+    if (!g_settings_set_int(self->handle, key, value)) { 
         Py_INCREF(Py_False);
         return Py_False;
     }
@@ -462,30 +442,14 @@ static PyObject *m_get_uint(DeepinGSettingsObject *self, PyObject *args)
 static PyObject *m_set_uint(DeepinGSettingsObject *self, PyObject *args) 
 {
     gchar *key = NULL;
-    PyObject *value = NULL;
-    gint nvalue = 0;
+    unsigned int value = 0;
 
-    if (!PyArg_ParseTuple(args, "sO", &key, &value)) { 
-        Py_INCREF(Py_False);
-        return Py_False;
+    if (!PyArg_ParseTuple(args, "sI", &key, &value)) { 
+        ERROR("invalid arguments to set_uint");
+        return NULL;
     }
 
-    if (!PyInt_Check(value)) { 
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-    nvalue = PyInt_AsLong(value);
-    if (nvalue < 0) { 
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-
-    if (!self->handle) { 
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-
-    if (!g_settings_set_uint(self->handle, key, nvalue)) { 
+    if (!g_settings_set_uint(self->handle, key, value)) { 
         Py_INCREF(Py_False);
         return Py_False;
     }
@@ -499,11 +463,10 @@ static PyObject *m_get_double(DeepinGSettingsObject *self, PyObject *args)
 {
     gchar *key = NULL;
 
-    if (!PyArg_ParseTuple(args, "s", &key)) 
-        return DOUBLE(0.0);
-
-    if (!self->handle) 
-        return DOUBLE(0.0);
+    if (!PyArg_ParseTuple(args, "s", &key)) {
+        ERROR("invalid arguments to get_double");
+        return NULL;
+    }
 
     return DOUBLE(g_settings_get_double(self->handle, key));
 }
@@ -511,26 +474,14 @@ static PyObject *m_get_double(DeepinGSettingsObject *self, PyObject *args)
 static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args) 
 {
     gchar *key = NULL;
-    PyObject *value = NULL;
-    gdouble dvalue = 0.0;
+    gdouble value = 0.0;
 
-    if (!PyArg_ParseTuple(args, "sO", &key, &value)) { 
-        Py_INCREF(Py_False);
-        return Py_False;
+    if (!PyArg_ParseTuple(args, "sd", &key, &value)) { 
+        ERROR("invalid arguments to set_double");
+        return NULL;
     }
 
-    if (!PyFloat_Check(value)) { 
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-    dvalue = PyFloat_AsDouble(value);
-
-    if (!self->handle) { 
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-
-    if (!g_settings_set_double(self->handle, key, dvalue)) { 
+    if (!g_settings_set_double(self->handle, key, value)) { 
         Py_INCREF(Py_False);
         return Py_False;
     }
@@ -544,11 +495,10 @@ static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args)
 {
     gchar *key = NULL;
 
-    if (!PyArg_ParseTuple(args, "s", &key)) 
-        return STRING(NULL);
-
-    if (!self->handle) 
-        return STRING(NULL);
+    if (!PyArg_ParseTuple(args, "s", &key)) { 
+        ERROR("invalid arguments to get_string");
+        return NULL;
+    }
 
     return STRING(g_settings_get_string(self->handle, key));
 }
@@ -559,13 +509,8 @@ static PyObject *m_set_string(DeepinGSettingsObject *self, PyObject *args)
     gchar *value = NULL;
 
     if (!PyArg_ParseTuple(args, "ss", &key, &value)) { 
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-
-    if (!self->handle) { 
-        Py_INCREF(Py_False);
-        return Py_False;
+        ERROR("invalid arguments to set_string");
+        return NULL;
     }
 
     if (!g_settings_set_string(self->handle, key, value)) { 
@@ -586,11 +531,10 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
     PyObject *item = NULL;
     int i;
 
-    if (!PyArg_ParseTuple(args, "s", &key)) 
-        return list;
-
-    if (!self->handle) 
-        return list;
+    if (!PyArg_ParseTuple(args, "s", &key)) { 
+        ERROR("invalid arguments to get_strv");
+        return NULL;
+    }
     
     strv = g_settings_get_strv(self->handle, key);
     if (strv) {
@@ -607,16 +551,15 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
     return list;
 }
 
-static void m_cleanup_strv(gchar **strv, int length) 
+static void m_cleanup_strv(gchar **strv) 
 {
     int i;
 
     if (strv) {
-        for (i = 0; i < length; i++) {
-            if (strv[i]) {
-                free(strv[i]);
-                strv[i] = NULL;
-            }
+        while (strv[i]) {
+            free(strv[i]);
+            strv[i] = NULL;
+            i++;
         }
         free(strv);
         strv = NULL;
@@ -634,16 +577,11 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     int i;
 
     if (!PyArg_ParseTuple(args, "sO", &key, &value)) {
-        Py_INCREF(Py_False);
-        return Py_False;
+        ERROR("invalid arguments to set_strv");
+        return NULL;
     }
     
     if (!PyList_Check(value)) {
-        Py_INCREF(Py_False);
-        return Py_False;
-    }
-
-    if (!self->handle) {
         Py_INCREF(Py_False);
         return Py_False;
     }
@@ -661,26 +599,26 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     
     for (i = 0; i < length; i++) { 
         item_str = PyString_AsString(PyList_GetItem(value, i));
-        item_length = strlen(item_str);
-        strv[i] = malloc(item_length * sizeof(gchar));
+        item_length = strlen(item_str) * sizeof(gchar);
+        strv[i] = malloc(item_length);
         if (!strv[i]) { 
             Py_INCREF(Py_False);
             return Py_False;
         }
-        memset(strv[i], 0, item_length * sizeof(gchar));
+        memset(strv[i], 0, item_length);
         strcpy(strv[i], item_str);
     }
     /* TODO: Tell GSettings the gchar** array size */
     strv[length] = NULL;
 
     if (!g_settings_set_strv(self->handle, key, strv)) {
-        m_cleanup_strv(strv, length + 1);
+        m_cleanup_strv(strv);
         Py_INCREF(Py_False);
         return Py_False;
     }
     g_settings_sync();
 
-    m_cleanup_strv(strv, length + 1);
+    m_cleanup_strv(strv);
 
     Py_INCREF(Py_True);
     return Py_True;
