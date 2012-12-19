@@ -335,6 +335,7 @@ static PyObject *m_list_keys(DeepinGSettingsObject *self)
     while (keys[i]) {
         item = STRING(keys[i]);
         PyList_Append(list, item);
+        Py_DECREF(item);
         i++;
     }
     
@@ -596,8 +597,11 @@ static PyObject *m_get_strv(DeepinGSettingsObject *self, PyObject *args)
         while (strv[i]) {
             item = STRING(strv[i]);
             PyList_Append(list, item);
+            Py_DECREF(item);
             i++;
         }
+        g_strfreev(strv);
+        strv = NULL;
     }
     
     return list;
