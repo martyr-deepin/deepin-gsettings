@@ -242,7 +242,9 @@ static DeepinGSettingsObject *m_init_deepin_gsettings_object()
     return self;
 }
 
-/* TODO: g_signal_connect work in the g_mainloop thread, and there is also Python looping thread */
+/* TODO: g_signal_connect work in the g_mainloop thread
+ *       and there is also Python looping thread 
+ */
 static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data) 
 {
     DeepinGSettingsObject *self = (DeepinGSettingsObject *) user_data;
@@ -599,7 +601,7 @@ static PyObject *m_set_strv(DeepinGSettingsObject *self, PyObject *args)
     
     for (i = 0; i < length; i++) { 
         item_str = PyString_AsString(PyList_GetItem(value, i));
-        item_length = strlen(item_str) * sizeof(gchar);
+        item_length = (strlen(item_str) + 1) * sizeof(gchar);
         strv[i] = malloc(item_length);
         if (!strv[i]) { 
             Py_INCREF(Py_False);
