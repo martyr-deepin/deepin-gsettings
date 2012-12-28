@@ -1,19 +1,5 @@
-Install
+依赖
+sudo apt-get install python-dev libglib2.0-dev
+
+安装
 sudo python setup.py install
-
-把玩一下pycurl的源代码，apt-get source pycurl，在pycurl-7.19.0/src/下有pycurl.c
-pycurl的作者很聪明将复杂的C结构体隐藏到自定义的CurlObject结构体中，通过handle来访问
-CURL *指针对象。
-
-特别的是，static PyTypeObject Curl_Type的实例化的方式，通过do_curl_getattr确定了
-curlobject_constants, curlobject_methods。
-在curlobject_methods中就有常用到的setopt等函数。
-
-g_signal_connect信号绑定是需要注意的, 在g_main_loop_run线程里, 而Python绑定工作在
-另一个线程，就得使用Python Style的线程锁咯，谢谢 super _synh_ :)
-
-参考文档
-http://developer.gnome.org/gio/2.32/GSettings.html
-python-2.7.3-docs-html/c-api/init.html
-python-2.7.3-docs-html/c-api/arg.html
-python-2.7.3-docs-html/c-api/concrete.html
