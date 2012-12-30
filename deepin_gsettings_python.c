@@ -60,6 +60,7 @@ static char m_set_value_doc[] = "Sets key in settings to value";
 
 static PyObject *m_delete(DeepinGSettingsObject *self);
 static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args);
+static PyObject *m_reset(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_list_keys(DeepinGSettingsObject *self);
 static PyObject *m_get_boolean(DeepinGSettingsObject *self, PyObject *args);
 static PyObject *m_set_boolean(DeepinGSettingsObject *self, PyObject *args);
@@ -79,6 +80,7 @@ static PyMethodDef deepin_gsettings_object_methods[] =
 {
     {"delete", m_delete, METH_NOARGS, "Deepin GSettings Object Destruction"}, 
     {"connect", m_connect, METH_VARARGS, "signal response"}, 
+    {"reset", m_reset, METH_VARARGS, "Resets key to its default value"}, 
     {"list_keys", m_list_keys, METH_NOARGS, 
      "Introspects the list of keys on settings"}, 
     {"get_boolean", m_get_boolean, METH_VARARGS, m_get_value_doc}, 
@@ -324,6 +326,21 @@ static PyObject *m_connect(DeepinGSettingsObject *self, PyObject *args)
 
     Py_INCREF(Py_True);
     return Py_True;
+}
+
+static PyObject *m_reset(DeepinGSettingsObject *self, PyObject *args) 
+{
+    gchar *key = NULL;
+
+    if (!PyArg_ParseTuple(args, "s", &key)) {                                   
+        Py_INCREF(Py_False);                                                    
+        return Py_False;                                                        
+    }
+
+    g_settings_reset(self->handle, key);
+
+    Py_INCREF(Py_True);                                                         
+    return Py_True;        
 }
 
 static PyObject *m_list_keys(DeepinGSettingsObject *self) 
