@@ -46,11 +46,13 @@ static PyTypeObject *m_DeepinGSettings_Type = NULL;
 
 static DeepinGSettingsObject *m_init_deepin_gsettings_object();
 static DeepinGSettingsObject *m_new(PyObject *self, PyObject *args);
+static DeepinGSettingsObject *m_new_with_path(PyObject *self, PyObject *args);
 static void m_changed_cb(GSettings *settings, gchar *key, gpointer user_data);
 
 static PyMethodDef deepin_gsettings_methods[] = 
 {
     {"new", m_new, METH_VARARGS, "Deepin GSettings Construction"}, 
+    {"new_with_path", m_new_with_path, METH_VARARGS, "Deepin GSettings Construction with path"}, 
     {NULL, NULL, 0, NULL}
 };
 
@@ -268,7 +270,10 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
 {
     DeepinGSettingsObject *self = NULL;
     gchar *schema_id = NULL;
- 
+
+    if (self) 
+        return self;
+
     self = m_init_deepin_gsettings_object();
     if (!self)
         return NULL;
@@ -287,6 +292,36 @@ static DeepinGSettingsObject *m_new(PyObject *dummy, PyObject *args)
     
     g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);
     
+    return self;
+}
+
+static DeepinGSettingsObject *m_new_with_path(PyObject *dummy, PyObject *args)            
+{                                                                               
+    DeepinGSettingsObject *self = NULL;                                         
+    gchar *schema_id = NULL;
+    gchar *path = NULL;    
+    
+    if (self) 
+        return self;
+
+    self = m_init_deepin_gsettings_object();                                    
+    if (!self)                                                                  
+        return NULL;                                                            
+                                                                                
+    if (!PyArg_ParseTuple(args, "ss", &schema_id, &path))                               
+        return NULL;                                                            
+                                                                                
+    g_type_init();                                                              
+                                                                                
+    self->handle = g_settings_new_with_path(schema_id, path);                                   
+    if (!self->handle) {                                                        
+        ERROR("g_settings_new_with_path error");                                          
+        m_delete(self);                                                         
+        return NULL;                                                            
+    }                                                                           
+                                                                                
+    g_signal_connect(self->handle, "changed", G_CALLBACK(m_changed_cb), self);  
+                                                                                
     return self;
 }
 
