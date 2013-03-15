@@ -548,11 +548,16 @@ static PyObject *m_set_double(DeepinGSettingsObject *self, PyObject *args)
 static PyObject *m_get_string(DeepinGSettingsObject *self, PyObject *args) 
 {
     gchar *key = NULL;
+    gchar *str = NULL;
 
     if (!PyArg_ParseTuple(args, "s", &key)) { 
         ERROR("invalid arguments to get_string");
         return NULL;
     }
+
+    str = g_settings_get_string(self->handle, key);
+    if (!str) 
+        return NULL;
 
     return STRING(g_settings_get_string(self->handle, key));
 }
